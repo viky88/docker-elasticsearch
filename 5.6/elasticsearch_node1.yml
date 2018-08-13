@@ -15,3 +15,9 @@ network.bind_host: 0.0.0.0
 network.publish_host: elasticsearch2
 # 设置master地址
 discovery.zen.ping.unicast.hosts: [elasticsearch1]
+
+# 参考：https://www.elastic.co/guide/en/x-pack/5.6/installing-xpack.html
+# # xpack.graph.enabled: false 
+# # xpack.monitoring.enabled: false 
+# xpack.security.enabled: false
+# # xpack.watcher.enabled: false

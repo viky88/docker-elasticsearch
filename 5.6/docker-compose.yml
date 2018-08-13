@@ -20,7 +20,7 @@ services:
     ports:
       - "9200:9200"
     networks:
-      - esnet
+      - esnet 
   
 
   elasticsearch2:
@@ -35,7 +35,8 @@ services:
         hard: -1 
     volumes:
       - ./elasticsearch_node1.yml:/usr/share/elasticsearch/config/elasticsearch.yml
-      - ./plugins:/usr/share/elasticsearch/plugins
+      - ./plugins/analysis-ik:/usr/share/elasticsearch/plugins/analysis-ik
+      - ./plugins/analysis-pinyin:/usr/share/elasticsearch/plugins/analysis-pinyin
       - ../common/ubuntu/etc/apt/sources.list:/etc/apt/sources.list
       - esdata2:/usr/share/elasticsearch/data 
     networks:
