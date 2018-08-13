@@ -1,8 +1,6 @@
 > 说明：目前测试仅是本机，如果是不同机器，自选修改相关配置  
 > elasticsearch5.6.10 + elasticsearch-head5 + kibana5.6.10   
 > plugins: analysis-ik5.6 + analysis-pinyin5.6
-> 特别注意： plugins目录，如果在mac下打开过，需要删除里面的.DS_Store文件,否则会导致es启动不起来
->          sudo find ./ -name ".DS_Store" -depth -exec rm {} \;
 
 ## docker及docker-compose安装及说明
 请参考: https://yeasy.gitbooks.io/docker_practice/compose
@@ -41,54 +39,42 @@ $ sudo reboot
 - 本机测试还有另外一种更简单安装 chrome 插件的方式:  
 https://chrome.google.com/webstore/detail/elasticsearch-head/ffmkiejjmecolpfloofpjologoblkegm?utm_source=chrome-app-launcher-info-dialog
 
-## 中文分词 elasticsearch-analysis-ik 安装（已经预装）
-参考： [elasticsearch-analysis-ik github](https://github.com/medcl/elasticsearch-analysis-ik)
+## 已经安装的插件
+- 中文分词 elasticsearch-analysis-ik 安装
+- 拼音 elasticsearch-analysis-pinyin 
+
+> 特别注意： plugins目录，如果在mac下打开过，需要删除里面的.DS_Store文件,否则会导致es启动不起来，执行下面命令，删除.DS_Store    
+>          sudo find ./ -name ".DS_Store" -depth -exec rm {} \;
+
 
 ```
-# 对应好版本，不然安装不上(此功能有bug，不用)
-docker exec -it elasticsearch5.6_1 /bin/bash
-./bin/elasticsearch-plugin install https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v5.6.10/elasticsearch-analysis-ik-5.6.10.zip
-
-# 本地安装(可将文件先下载到宿主电脑，用docker cp 命令拷贝到容器中)
-# 参考1：https://github.com/medcl/elasticsearch-analysis-ik#install
-# 参考2：https://blog.csdn.net/u012915455/article/details/78952068
-
-$ docker exec -it elasticsearch5.6_1 /bin/bash
-$ cd plugins
-$ wget https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v5.6.10/elasticsearch-analysis-ik-5.6.10.zip
-$ unzip elasticsearch-analysis-ik-5.6.10.zip
-$ rm elasticsearch-analysis-ik-5.6.10.zip
-```
-
-## 拼音 elasticsearch-analysis-pinyin 安装（已经预装）
-参考：  [elasticsearch-analysis-pinyin github](https://github.com/medcl/elasticsearch-analysis-pinyin)
-
-```
+# 自行安装方法
 # 对应好版本，不然安装不上
-$ docker exec -it elasticsearch5.6_1 /bin/bash
-$ cd plugins
-$ wget https://github.com/medcl/elasticsearch-analysis-pinyin/releases/download/v5.6.10/elasticsearch-analysis-pinyin-5.6.10.zip
-$ unzip elasticsearch-analysis-pinyin-5.6.10.zip
-$ rm elasticsearch-analysis-pinyin-5.6.10.zip
-```
-安装完插件需要，重新启动 Elastic，就会自动加载新安装的插件
+# (官方elasticsearch-plugins功能有bug，不要用)
+# 集群中每个容器都要安装
+# 下面以安装 analysis-ik 为例
+docker exec -it es5.6_1 /bin/bash
+cd plugins
+wget https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v5.6.10/elasticsearch-analysis-ik-5.6.10.zip
+unzip elasticsearch-analysis-ik-5.6.10.zip
+rm elasticsearch-analysis-ik-5.6.10.zip
 
-```
+# 安装完插件需要，重新启动 Elastic，就会自动加载新安装的插件
 # 重启docker
-docker restart elasticsearch5.6_1
-docker restart elasticsearch5.6_2
+docker restart es5.6_1
+docker restart es5.6_2
 
 # 查看安装的插件
-docker exec -it elasticsearch5.6_1 bash ./bin/elasticsearch-plugin list
+docker exec -it es5.6_1 bash ./bin/elasticsearch-plugin list
 
 # 结果
 analysis-ik
 analysis-pinyin
 ```
 
-## 测试
+## 测试中文分词
 
-中文分词测试，于kibana>Dev Tools中输入:
+中文分词测试，于[kibana>Dev Tools](http://localhost:5601/app/kibana#/dev_tools)中输入:
 ```
 GET _analyze
 {
@@ -133,6 +119,43 @@ GET _analyze
 ```
 出现以上内容证明中文分词生效
 
+## 通过模板设置全局默认分词器
+
+```
+curl -XDELETE http://localhost:9200/_template/rtf
+
+curl -XPUT http://localhost:9200/_template/rtf -d'
+{
+  "template":   "*", 
+  "settings": { "number_of_shards": 1 }, 
+  "mappings": {
+    "_default_": {
+      "_all": { 
+        "enabled": true
+      },
+      "dynamic_templates": [
+        {
+          "strings": { 
+            "match_mapping_type": "string",
+            "mapping": {
+              "type": "text",
+              "analyzer":"ik_max_word",
+              "ignore_above": 256,
+              "fields": {
+                "keyword": {
+                  "type":  "keyword"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+'
+```
+
 ## 地址
 - elasticsearch ： http://localhost:9200/
 - elasticsearch-head : http://localhost:9100/
@@ -142,5 +165,6 @@ GET _analyze
 ## 参考：
 - [Elasticsearch:5.6](https://www.elastic.co/guide/en/elasticsearch/reference/5.6/getting-started.html)
 - [Elasticsearch: 权威指南](https://www.elastic.co/guide/cn/elasticsearch/guide/cn/index.html)
-- [全文搜索引擎 Elasticsearch 入门教程](http://www.ruanyifeng.com/blog/2017/08/elasticsearch.html)
-- [Elasticsearch搜索服务学习之九——索引管理](https://blog.belonk.com/c/elasticsearch_index_management.html)
+- [elasticsearch-analysis-ik github](https://github.com/medcl/elasticsearch-analysis-ik)
+- [elasticsearch-analysis-pinyin github](https://github.com/medcl/elasticsearch-analysis-pinyin)
+- [elasticsearch-rtf](https://github.com/medcl/elasticsearch-rtf)
